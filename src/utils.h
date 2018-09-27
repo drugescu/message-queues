@@ -13,3 +13,11 @@
 		}							\
 	} while (0)
 #endif
+
+#define BUF_SIZE 	        	(1 << 13)
+#define MAX_CLIENTS         	12
+#define MAX_TOKENS          	255
+#define SERVER_QUEUE_NAME   	"/mqueue"
+#define REQUEST_TEXT        	"<REQUEST_TOKEN>"
+#define MAX_QUEUE_NAME_SIZE     25
+#define MAX_TOKEN_MESSAGE_SIZE  100

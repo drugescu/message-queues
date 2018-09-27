@@ -1,5 +1,5 @@
 /*
- * main.c - Practice 2
+ * client.c - Practice 2
  *
  * 2018 drugescu <drugescu@drugescu-VirtualBox>
  *
@@ -22,71 +22,77 @@
 #include <fcntl.h>
 #include <mqueue.h>
 
+#include <stdbool.h>
+
+#include <time.h>
+
 #include "utils.h"
 
-// 8192B
-#define BUF_SIZE 	        (1 << 13)
-#define MAX_CLIENTS         12
-#define SERVER_QUEUE_NAME  "/mqueue"
-
 char buf[BUF_SIZE];
-
-// Server queue name is known to clients
-// Clients queue name is of the form /mqueue{PID}
 
 int main(int argc, char **argv)
 {
     int rc;
     unsigned int prio = 10;
+    
     mqd_t server_mqueue;
-    mqd_t client_mqueue[ MAX_CLIENTS ];
+    mqd_t client_mqueue;
+    
+    char client_mqueue_name[ MAX_QUEUE_NAME_SIZE ] = { 0 };
+    char token_message[ MAX_TOKEN_MESSAGE_SIZE ] = { 0 };
+    int req_token;
+
+    // Set current client mqueue name
+    sprintf(client_mqueue_name, "/mqueue%d", getpid());
+
+    // From REQUEST TOKEN message
+    sprintf(token_message, "%s ", REQUEST_TEXT);
     
     printf("Main pid is %d\n", getpid());
+    srand(time(NULL));
 
-    // Start message queue
-    mqueue = mq_open(SERVER_QUEUE_NAME, (argc > 1 ? O_CREAT : 0) | O_RDWR, 0666, NULL);
-    DIE(mqueue == (mqd_t) - 1, "mq_open");
+    // Open server message queue
+    server_mqueue = mq_open(SERVER_QUEUE_NAME, O_RDWR, 0666, NULL);
+    DIE(server_mqueue == (mqd_t) - 1, "mq_open");
 
-    // Server or client depending on arguments to process
-    if (argc > 1) {
-        // Server doing its stuff
-        printf("Server mode on, argc > 1, argument is: %s\n", argv[1]);
-        
-        //rc = mq_send(mqueue, argv[1], strlen(argv[1]), prio);
-        //DIE(rc == -1, "mq_send");
+    printf("Client on, sending queue name <<%s>> to server...\n", client_mqueue_name);
 
-        rc = mq_close(mqueue);
-        DIE(rc == -1, "mq_close");
+    // Send message to server with queue name
+    rc = mq_send(server_mqueue, client_mqueue_name, strlen(client_mqueue_name), prio);
+    DIE(rc == -1, "mq_send");
+
+    // Now open client queue
+    client_mqueue = mq_open(client_mqueue_name, O_RDWR | O_CREAT, 0666, NULL);
+    DIE(client_mqueue == (mqd_t) - 1, "mq_open");
+
+    while (true) {
+        // Pick a token the client requires
+        req_token = rand() % MAX_TOKENS;
+
+        // Append it to the request
+        sprintf(token_message, "%s%s %d", token_message, client_mqueue_name, req_token);
+
+        printf("Asking the server for a token with request \"%s\".\n", token_message);
+
+        // Ask server for token
+        rc = mq_send(server_mqueue, token_message, strlen(token_message), prio);
+        DIE(rc == -1, "mq_send");
+
+        rc = mq_receive(client_mqueue, buf, BUF_SIZE, &prio);
+        DIE(rc == -1, "mq_receive");
+
+        printf("Received token \"%s\" from server\n", buf);
     }
-    else {
-        // Client doing its stuff
-        printf("Client mode on, argc = 1, waiting for message...\n");
 
-        rc = mq_receive(mqueue, buf, BUF_SIZE, &prio);
-		DIE(rc == -1, "mq_receive");
- 
-		printf("received: %s\n", buf);
- 
-		rc = mq_close(mqueue);
-		DIE(rc == -1, "mq_close");
- 
-		rc = mq_unlink(QUEUE_NAME);
-		DIE(rc == -1, "mq_unlink");
-    }
+    // Cleanup
+    rc = mq_close(server_mqueue);
+    DIE(rc == -1, "mq_close");
 
-    /* create */
-    // mqd_t mq_open(const char *name, int oflag, mode_t mode, struct mq_attr *attr);
-    /* create */
-    // mqd_t mq_open(const char *name, int oflag, mode_t mode, struct mq_attr *attr);
-    /* send */
-    // int mq_send(mqd_t mqdes, const char *buffer, size_t length, unsigned priority);
-    /* recv */
-    // ssize_t mq_receive(mqd_t mqdes, char *buffer, size_t length, unsigned *priority);
-    /* close */
-    // int mq_close(mqd_t mqdes);
-    /* unlink */
-    // int mq_unlink(const char *name);
-    
+    rc = mq_close(client_mqueue);
+    DIE(rc == -1, "mq_close");
+
+    rc = mq_unlink(client_mqueue_name);
+    DIE(rc == -1, "mq_close");
 
     return 0;
 }
