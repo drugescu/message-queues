@@ -2,7 +2,7 @@ TARGET ?= server.out
 TARGET2 ?= client.out
 SRC_DIRS ?= ./src
 
-SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name server*.c -or -name *.s)
+SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name server*.c -or -name hash*.c -or -name *.s)
 OBJS := $(addsuffix .o,$(basename $(SRCS)))
 DEPS := $(OBJS:.o=.d)
 

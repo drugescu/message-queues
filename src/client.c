@@ -28,7 +28,7 @@
 
 #include "utils.h"
 
-char buf[BUF_SIZE];
+char buf[BUF_SIZE] = { 0 };
 
 int main(int argc, char **argv)
 {
@@ -65,7 +65,16 @@ int main(int argc, char **argv)
     client_mqueue = mq_open(client_mqueue_name, O_RDWR | O_CREAT, 0666, NULL);
     DIE(client_mqueue == (mqd_t) - 1, "mq_open");
 
-    while (true) {
+    // Wait for the server to respond with clearance
+    rc = mq_receive(client_mqueue, buf, BUF_SIZE, &prio);
+    DIE(rc == -1, "mq_receive");
+
+    if (strcmp(buf, CONNECTION_ACCEPTED) == 0) {
+        printf("Connection accepted.\n");
+
+        // Reset buffer
+        memset(buf, 0, BUF_SIZE);
+        
         // Pick a token the client requires
         req_token = rand() % MAX_TOKENS;
 
@@ -74,14 +83,18 @@ int main(int argc, char **argv)
 
         printf("Asking the server for a token with request \"%s\".\n", token_message);
 
-        // Ask server for token
+        // Send request
         rc = mq_send(server_mqueue, token_message, strlen(token_message), prio);
         DIE(rc == -1, "mq_send");
 
+        // Get reply
         rc = mq_receive(client_mqueue, buf, BUF_SIZE, &prio);
         DIE(rc == -1, "mq_receive");
 
         printf("Received token \"%s\" from server\n", buf);
+    }
+    else {
+        printf("Connection refused, quitting.\n");
     }
 
     // Cleanup

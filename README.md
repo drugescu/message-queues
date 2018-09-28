@@ -13,5 +13,8 @@ When done, the client returns the token to the server, to reinsert in the pool.
 
 Total token pool count is fixed, known to both server & client (255).
 
-A token is an integer number from 0 to MAX_TOKEN_COUNT
+A token is an integer number from 0 to MAX_TOKEN_COUNT.
+
+Tokens are implemented in a hash table due to fast search/insert/delete O(1) in our case, since
+tokens are uniquely allocated to a single client (so no bins).
 
