@@ -1,6 +1,6 @@
-=Practice 2=
+* Practice 2
 
-==Message queues==
+** Message queues
 
 Server queue name is known to clients "\mqueue".
 Clients queue name is of the form "/mqueue{PID}".
