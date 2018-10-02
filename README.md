@@ -9,10 +9,8 @@ Implemented a server-client architecture for token requesting using linux messag
 Clients connect to a known server message queue, create their own, using their PID, and
 send a request for a specific token, which they receive from the server.
 
-* Server queue name is known to clients `"\mqueue"`.
-* Clients queue name is of the form `"/mqueue{PID}"`.
-
-`[TODO]` When done, the client returns the token to the server, to reinsert in the pool.
+* Server queue name is known to clients `\mqueue`.
+* Clients queue name is of the form `/mqueue{PID}`.
 
 Token pool is finite and tokens will be reinserted in the pool when recovered from the clients.
 
@@ -30,5 +28,10 @@ connections if clients will subsequently try to connec.t
 
 ### Usage
 
-./server
-./client
+`./server`
+`./client`
+
+### ToDo
+
+- [ ] When done, the client returns the token to the server, to reinsert in the pool.
+
